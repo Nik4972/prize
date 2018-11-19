@@ -3,22 +3,22 @@
 namespace app\controllers;
 
 use app\models\User;
+use app\models\Prizes;
 use Yii;
 use yii\filters\AccessControl;
 use yii\web\Controller;
+use yii\web\HttpException;
 use yii\filters\VerbFilter;
 use app\models\LoginForm;
 use app\models\ContactForm;
 use app\models\SignupForm;
 use app\models\PasswordResetRequestForm;
 use app\models\ResetPasswordForm;
-
+use yii\web\Response;
 
 class SiteController extends Controller
 {
-    /**
-     * @inheritdoc
-     */
+
     public function behaviors()
     {
         return [
@@ -42,9 +42,7 @@ class SiteController extends Controller
         ];
     }
 
-    /**
-     * @inheritdoc
-     */
+
     public function actions()
     {
         return [
@@ -87,6 +85,30 @@ class SiteController extends Controller
             'model' => $model,
         ]);
     }
+
+    public function actionAjaxLogin() {
+
+        if (Yii::$app->request->isAjax) {
+
+            $model = new LoginForm();
+
+            if ($model->load(Yii::$app->request->post())) {
+
+                if ($model->login()) {
+
+                    return $this->goBack();
+                } else {
+
+                    Yii::$app->response->format = yii\web\Response::FORMAT_JSON;
+
+                    return \yii\widgets\ActiveForm::validate($model);
+                }
+            }
+        } else {
+            throw new HttpException(404 ,'Page not found');
+        }
+    }
+
 
     /**
      * Logout action.
@@ -134,7 +156,7 @@ class SiteController extends Controller
         if (empty($model)) {
             $user = new User();
             $user->username = 'admin';
-            $user->email = 'admin@кодер.укр';
+            $user->email = 'admin@ukr.net';
             $user->setPassword('admin');
             $user->generateAuthKey();
             if ($user->save()) {
@@ -207,4 +229,27 @@ class SiteController extends Controller
             'model' => $model,
         ]);
     }
+
+    public function actionPrize()
+    {
+
+      $max = Prizes::find()->count();
+
+      $offset = rand(1,$max);
+
+      $prize = Prizes::find()->where(['id' => $offset])->one();        
+        
+      return $this->render('index', ['prize' => $prize->title]);
+    }
+
+    public function actionConvert()
+    {
+      $coefficient = filter_input(INPUT_GET, 'coefficient', FILTER_SANITIZE_NUMBER_INT);
+      $prize_val = filter_input(INPUT_GET, 'prize_val', FILTER_SANITIZE_NUMBER_INT);
+      $ball = $prize_val * $coefficient;
+
+      // Здесь идет логика записи боллов лояльности куда-то.
+    }
+
+ 
 }
